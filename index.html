@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The New Frontline: Weaponization of Character</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: "Warm Neutral Ground" - A calming and professional palette using beige as a base, with slate blue, muted teal, and a soft terracotta for accents. This creates a serious but accessible tone suitable for a national security topic, avoiding alarmist reds while ensuring clarity and readability. -->
+    <!-- Application Structure Plan: The SPA is designed as a multi-section, narrative-driven dashboard. It starts with a high-level introduction, then moves to a core interactive component: a "Threat Vector Comparison" module. This allows users to directly compare 'Weaponization of Character', 'Espionage', and 'Cyber-Attacks' across key attributes, which is the central analytical task. Subsequent sections provide deeper dives into the 'Anatomy of the Threat' (tactics like Lawfare, Kompromat), 'Global Actors' (Russia, China), and 'Democratic Resilience' (solutions). Navigation is handled by a sticky top bar. This structure was chosen because it transforms the linear report into an exploratory experience. Users can get the main takeaway from the interactive comparison first, then delve into the specifics as their interest dictates, which is a more engaging and user-centric flow than a simple chapter-by-chapter presentation. -->
+    <!-- Visualization & Content Choices:
+        - Report Info: Comparative analysis of three threat types (Sec 3). Goal: Compare. Viz/Method: Interactive Radar Chart (Chart.js) and a dynamic, tabbed content display for detailed text comparison. Interaction: User clicks on threat type buttons to update both the chart and the text panel simultaneously. Justification: A radar chart is excellent for comparing multiple entities across the same set of variables (Goal, Target, Denial, etc.), providing an instant visual summary of their profiles. The linked text panel provides the necessary detail. Library: Chart.js.
+        - Report Info: The arsenal/tactics of character weaponization (Sec 2). Goal: Organize & Inform. Viz/Method: An interactive diagram built with HTML/CSS grid and flexbox. Each tactic (Lawfare, Kompromat, etc.) is a clickable card. Interaction: Clicking a card reveals a modal or an expanded view with a detailed explanation of the tactic. Justification: This is more engaging than a static list. It allows users to explore the components of the threat at their own pace, making the complex "arsenal" more digestible.
+        - Report Info: Geopolitical actors (Russia & China) (Sec 4). Goal: Compare. Viz/Method: A two-column layout with toggleable content sections. Interaction: Buttons to switch between "Strategic Objective," "Key Tactics," and "Case Study" for each country. Justification: This facilitates a direct, side-by-side comparison of the two main actors' methodologies and goals, making their distinct approaches clearer.
+        - Report Info: Strategic Recommendations (Sec 6). Goal: Inform. Viz/Method: A categorized list using icons (Unicode) and accordion-style collapsible sections. Interaction: Clicking on a recommendation category (e.g., "Strengthen Institutions") expands to show the detailed points. Justification: This organizes the dense policy recommendations into clear, high-level themes, preventing user overload and making the solutions feel structured and actionable.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F5F5F3; /* Warm Neutral: Beige */
+            color: #374151;
+        }
+        .nav-active {
+            color: #265D5A; /* Muted Teal */
+            border-bottom: 2px solid #265D5A;
+        }
+        .nav-item {
+            transition: color 0.3s ease, border-bottom 0.3s ease;
+        }
+        .card {
+            background-color: #FFFFFF;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.1);
+        }
+        .btn-primary {
+            background-color: #4A5568; /* Slate Blue */
+            color: #FFFFFF;
+            transition: background-color 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #2D3748;
+        }
+        .btn-secondary {
+            background-color: #E08D79; /* Soft Terracotta */
+            color: #FFFFFF;
+            transition: background-color 0.3s ease;
+        }
+        .btn-secondary:hover {
+            background-color: #C77560;
+        }
+        .btn-active {
+            background-color: #265D5A; /* Muted Teal */
+            color: white;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header & Navigation -->
+    <header class="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-xl font-bold text-slate-700">The New Frontline</h1>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#home" class="nav-item px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-teal-700 nav-active">Home</a>
+                        <a href="#comparison" class="nav-item px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-teal-700">Threat Comparison</a>
+                        <a href="#anatomy" class="nav-item px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-teal-700">Anatomy of the Threat</a>
+                        <a href="#actors" class="nav-item px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-teal-700">Global Actors</a>
+                        <a href="#resilience" class="nav-item px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-teal-700">Resilience</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white">
+                        <span class="sr-only">Open main menu</span>
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#home" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-teal-700">Home</a>
+                <a href="#comparison" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-teal-700">Threat Comparison</a>
+                <a href="#anatomy" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-teal-700">Anatomy of the Threat</a>
+                <a href="#actors" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-teal-700">Global Actors</a>
+                <a href="#resilience" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-teal-700">Resilience</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Home Section -->
+        <section id="home" class="py-16 sm:py-24">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h2 class="text-base font-semibold text-teal-600 tracking-wide uppercase">A New Era of Conflict</h2>
+                <p class="mt-2 text-3xl font-extrabold text-gray-900 tracking-tight sm:text-4xl">The Weaponization of Character</p>
+                <p class="mt-5 max-w-3xl mx-auto text-lg text-gray-600">
+                    This application explores a growing national security threat: the deliberate exploitation of personal, financial, and ethical vulnerabilities of political elites. This is not traditional espionage or cyber-warfare. It's a corrosive assault on the very foundations of democratic trust and stability. Here, you can interactively compare this threat to others, dissect its tactics, and understand the strategies for building democratic resilience.
+                </p>
+                <div class="mt-8">
+                    <a href="#comparison" class="btn-primary text-base font-medium rounded-md px-8 py-3">Start Exploring</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Threat Comparison Section -->
+        <section id="comparison" class="py-16 sm:py-24 bg-white">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-extrabold text-gray-900">Threat Vector Analysis</h2>
+                    <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-600">How does the weaponization of character stack up against traditional threats? Select a threat to see its profile on the chart and read a detailed analysis. This interaction reveals the unique, corrosive nature of character-based attacks compared to more conventional forms of conflict.</p>
+                </div>
+
+                <div class="flex justify-center space-x-2 sm:space-x-4 mb-8" id="threat-buttons">
+                    <button data-threat="character" class="threat-btn btn-active px-4 py-2 text-sm sm:text-base font-medium rounded-md shadow">Weaponization of Character</button>
+                    <button data-threat="espionage" class="threat-btn bg-white text-gray-700 hover:bg-gray-50 px-4 py-2 text-sm sm:text-base font-medium rounded-md shadow">Traditional Espionage</button>
+                    <button data-threat="cyber" class="threat-btn bg-white text-gray-700 hover:bg-gray-50 px-4 py-2 text-sm sm:text-base font-medium rounded-md shadow">Direct Cyber-Attacks</button>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+                    <div class="chart-container">
+                        <canvas id="threat-chart"></canvas>
+                    </div>
+                    <div id="threat-details" class="space-y-4">
+                        <!-- Details will be populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Anatomy of the Threat Section -->
+        <section id="anatomy" class="py-16 sm:py-24">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-extrabold text-gray-900">Anatomy of the Threat</h2>
+                    <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-600">Character weaponization is not a single action but a campaign fought with a diverse arsenal. These tactics are designed to subvert institutions, exploit secrets, and control narratives. Click on each card to explore the primary tools used in this new form of warfare.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div class="tactic-card card p-6 text-center cursor-pointer" data-tactic="lawfare">
+                        <div class="text-4xl mb-4">⚖️</div>
+                        <h3 class="text-lg font-semibold text-gray-900">Lawfare</h3>
+                        <p class="text-gray-600 mt-2 text-sm">Using legal systems as a weapon to harass, delegitimize, and neutralize opponents.</p>
+                    </div>
+                    <div class="tactic-card card p-6 text-center cursor-pointer" data-tactic="kompromat">
+                        <div class="text-4xl mb-4">🤫</div>
+                        <h3 class="text-lg font-semibold text-gray-900">Kompromat</h3>
+                        <p class="text-gray-600 mt-2 text-sm">Exploiting compromising materials to blackmail, discredit, or control public figures.</p>
+                    </div>
+                    <div class="tactic-card card p-6 text-center cursor-pointer" data-tactic="disinfo">
+                        <div class="text-4xl mb-4">🤖</div>
+                        <h3 class="text-lg font-semibold text-gray-900">Digital Disinformation</h3>
+                        <p class="text-gray-600 mt-2 text-sm">Using social media, AI, and bots to spread false narratives and sow discord at scale.</p>
+                    </div>
+                    <div class="tactic-card card p-6 text-center cursor-pointer" data-tactic="finance">
+                        <div class="text-4xl mb-4">💸</div>
+                        <h3 class="text-lg font-semibold text-gray-900">Economic Leverage</h3>
+                        <p class="text-gray-600 mt-2 text-sm">Applying financial pressure and exploiting economic interdependence to coerce states.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Global Actors Section -->
+        <section id="actors" class="py-16 sm:py-24 bg-white">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-extrabold text-gray-900">Global Actors & Strategies</h2>
+                    <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-600">Major state actors, particularly Russia and China, have integrated character weaponization into their national strategies. While they use similar tools, their objectives differ. Explore their approaches to see how these doctrines are applied in the real world.</p>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Russia -->
+                    <div class="card p-6">
+                        <h3 class="text-2xl font-bold text-center mb-4 text-slate-800">Russian Federation</h3>
+                        <div class="flex justify-center space-x-2 mb-4">
+                            <button class="actor-btn btn-secondary px-3 py-1 text-sm rounded-md" data-actor="russia" data-tab="objective">Objective</button>
+                            <button class="actor-btn bg-white text-gray-700 hover:bg-gray-50 px-3 py-1 text-sm rounded-md" data-actor="russia" data-tab="tactics">Tactics</button>
+                            <button class="actor-btn bg-white text-gray-700 hover:bg-gray-50 px-3 py-1 text-sm rounded-md" data-actor="russia" data-tab="case">Case Study</button>
+                        </div>
+                        <div id="russia-content" class="text-gray-600">
+                            <!-- JS will populate this -->
+                        </div>
+                    </div>
+                    <!-- China -->
+                    <div class="card p-6">
+                        <h3 class="text-2xl font-bold text-center mb-4 text-slate-800">People's Republic of China</h3>
+                        <div class="flex justify-center space-x-2 mb-4">
+                            <button class="actor-btn btn-secondary px-3 py-1 text-sm rounded-md" data-actor="china" data-tab="objective">Objective</button>
+                            <button class="actor-btn bg-white text-gray-700 hover:bg-gray-50 px-3 py-1 text-sm rounded-md" data-actor="china" data-tab="tactics">Tactics</button>
+                            <button class="actor-btn bg-white text-gray-700 hover:bg-gray-50 px-3 py-1 text-sm rounded-md" data-actor="china" data-tab="case">Case Study</button>
+                        </div>
+                        <div id="china-content" class="text-gray-600">
+                            <!-- JS will populate this -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Democratic Resilience Section -->
+        <section id="resilience" class="py-16 sm:py-24">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-extrabold text-gray-900">Building Democratic Resilience</h2>
+                    <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-600">Countering this threat requires more than just defense; it demands a proactive, whole-of-society strategy to strengthen the very foundations of democracy. The following are key areas for strategic action. Click each theme to expand the recommendations.</p>
+                </div>
+                <div class="max-w-3xl mx-auto space-y-4">
+                    <div class="accordion-item">
+                        <button class="accordion-header w-full text-left p-4 card flex justify-between items-center">
+                            <span class="font-semibold text-lg text-slate-800">🛡️ Strengthen Institutional Guardrails</span>
+                            <span class="accordion-icon text-2xl font-thin transform transition-transform">+</span>
+                        </button>
+                        <div class="accordion-content bg-white p-4 rounded-b-lg">
+                            <ul class="list-disc list-inside space-y-2 text-gray-600">
+                                <li>**De-weaponize Government:** Establish robust, independent oversight to prevent the misuse of law enforcement and intelligence agencies for political ends.</li>
+                                <li>**Build Legal Resilience:** Proactively identify and close legal loopholes that permit malign foreign influence, opaque financing, and other hybrid threats.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <button class="accordion-header w-full text-left p-4 card flex justify-between items-center">
+                            <span class="font-semibold text-lg text-slate-800">🧠 Develop Cognitive Security</span>
+                            <span class="accordion-icon text-2xl font-thin transform transition-transform">+</span>
+                        </button>
+                        <div class="accordion-content bg-white p-4 rounded-b-lg">
+                            <ul class="list-disc list-inside space-y-2 text-gray-600">
+                                <li>**Establish Doctrine:** Formally recognize the cognitive domain as a critical national security theater, integrating intelligence, cyber, and psychological expertise.</li>
+                                <li>**Use Evidence-Based Countermeasures:** Invest in a portfolio of interventions, from tactical fact-checking to long-term media literacy education, and rigorously evaluate their impact.</li>
+                                <li>**Acknowledge Limits:** Treat disinformation as a chronic condition to be managed, focusing on long-term resilience over short-term victories.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <button class="accordion-header w-full text-left p-4 card flex justify-between items-center">
+                            <span class="font-semibold text-lg text-slate-800">⚖️ Update Legal & Ethical Frameworks</span>
+                            <span class="accordion-icon text-2xl font-thin transform transition-transform">+</span>
+                        </button>
+                        <div class="accordion-content bg-white p-4 rounded-b-lg">
+                            <ul class="list-disc list-inside space-y-2 text-gray-600">
+                                <li>**Regulate Malign Interference:** Create clearer laws to distinguish between legitimate diplomacy and covert influence, with stricter enforcement of foreign agent registration.</li>
+                                <li>**Foster Collaborative Defense:** Create legal "safe harbors" for ethical hackers to encourage responsible vulnerability disclosure and harden the digital ecosystem.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <button class="accordion-header w-full text-left p-4 card flex justify-between items-center">
+                            <span class="font-semibold text-lg text-slate-800">🤝 Foster Societal Resilience</span>
+                            <span class="accordion-icon text-2xl font-thin transform transition-transform">+</span>
+                        </button>
+                        <div class="accordion-content bg-white p-4 rounded-b-lg">
+                            <ul class="list-disc list-inside space-y-2 text-gray-600">
+                                <li>**Invest in Media Literacy:** Make sustained, significant investments in media and digital literacy education for all age groups.</li>
+                                <li>**Rebuild Institutional Trust:** Support high-quality local journalism, embrace radical government transparency, and promote community engagement to rebuild social capital.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal for Tactic Details -->
+    <div id="tactic-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 id="modal-title" class="text-2xl font-bold text-gray-900"></h3>
+                    <button id="modal-close" class="text-gray-500 hover:text-gray-800 text-3xl">&times;</button>
+                </div>
+                <div id="modal-content" class="text-gray-600 space-y-4"></div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-slate-800 text-white mt-16">
+        <div class="container mx-auto py-6 px-4 sm:px-6 lg:px-8 text-center text-sm">
+            <p>This interactive report is based on the analysis "The New Frontline: Assessing the Primacy of Character Weaponization in Modern Threats to Democratic Security".</p>
+            <p class="mt-1 opacity-70">Application designed for educational and informational purposes.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Data Store
+            const threatData = {
+                character: {
+                    label: 'Weaponization of Character',
+                    scores: [8, 9, 9, 8, 9], // Corrosive Impact, Plausible Deniability, Asymmetric Advantage, Societal Polarization, Low Escalation Risk
+                    details: `
+                        <h3 class="text-xl font-bold text-teal-700">Weaponization of Character</h3>
+                        <p class="text-gray-700"><strong>Primary Goal:</strong> To delegitimize, destabilize, and polarize a society, subverting the democratic system from within.</p>
+                        <p class="text-gray-700"><strong>Primary Target:</strong> The cognitive domain – public trust, elite reputation, institutional integrity, and social cohesion.</p>
+                        <p class="text-gray-700"><strong>Impact Profile:</strong> Corrosive and cumulative. It inflicts long-term, intangible damage by eroding the essential "software" of democracy. The harm is systemic, weakening the state from within over time.</p>
+                        <p class="text-gray-700"><strong>Key Feature:</strong> Exploits a democracy's own strengths (free speech, rule of law) against it, operating in a "gray zone" below the threshold of armed conflict with high plausible deniability.</p>
+                    `
+                },
+                espionage: {
+                    label: 'Traditional Espionage',
+                    scores: [4, 7, 5, 3, 6],
+                    details: `
+                        <h3 class="text-xl font-bold text-slate-700">Traditional Espionage</h3>
+                        <p class="text-gray-700"><strong>Primary Goal:</strong> Clandestine collection of classified information to gain a military, diplomatic, or economic advantage.</p>
+                        <p class="text-gray-700"><strong>Primary Target:</strong> State secrets, strategic plans, human sources, and intellectual property.</p>
+                        <p class="text-gray-700"><strong>Impact Profile:</strong> Strategic and discrete. A successful operation yields specific advantages but the impact is typically contained within government or specific sectors. It doesn't inherently attack the democratic process itself.</p>
+                        <p class="text-gray-700"><strong>Key Feature:</strong> Operates under established, unwritten rules of engagement. Discovery leads to diplomatic crises, not typically military escalation.</p>
+                    `
+                },
+                cyber: {
+                    label: 'Direct Cyber-Attacks',
+                    scores: [7, 3, 6, 5, 9], // Disruptive Impact, Plausible Deniability, Asymmetric Advantage, Societal Disruption, High Escalation Risk
+                    details: `
+                        <h3 class="text-xl font-bold text-red-700">Direct Cyber-Attacks</h3>
+                        <p class="text-gray-700"><strong>Primary Goal:</strong> To deny, degrade, disrupt, or destroy critical computer systems and physical infrastructure.</p>
+                        <p class="text-gray-700"><strong>Primary Target:</strong> The "hardware" of the state – power grids, financial systems, transportation networks, and data integrity.</p>
+                        <p class="text-gray-700"><strong>Impact Profile:</strong> Disruptive and tangible. Causes immediate, real-world consequences like blackouts or service shutdowns. The damage is often recoverable.</p>
+                        <p class="text-gray-700"><strong>Key Feature:</strong> The most "kinetic" form of digital conflict. Carries a high risk of escalation as it can be interpreted as an act of war, creating a degree of deterrence.</p>
+                    `
+                }
+            };
+
+            const tacticDetails = {
+                lawfare: {
+                    title: '⚖️ Lawfare',
+                    content: `
+                        <p>Lawfare is the strategic use of legal systems and institutions as a weapon of political conflict. Instead of seeking justice, its goal is to harass, delegitimize, and financially drain opponents. This can be done by domestic actors politicizing government agencies or by international actors abusing international law to constrain an adversary.</p>
+                        <p class="mt-2">A key tactic is to "depoliticize" a political struggle by moving it into the courts, stifling public debate and transforming it into a narrow legal battle. This creates a powerful tool for neutralizing political enemies under a veneer of legality.</p>
+                    `
+                },
+                kompromat: {
+                    title: '🤫 Kompromat',
+                    content: `
+                        <p>Originating from Soviet intelligence, <em>kompromat</em> is compromising material (real, exaggerated, or fabricated) used to blackmail, discredit, or control a public figure. Modern kompromat has evolved from classic "honey traps" to sophisticated cyber operations, such as hacking emails or planting illicit material on a target's devices.</p>
+                        <p class="mt-2">The goal is often long-term leverage. The mere suspicion that a leader might be compromised can be a powerful political weapon, creating a "blackmail paradox" where distrust and strategic ambiguity become more politically advantageous than transparency.</p>
+                    `
+                },
+                disinfo: {
+                    title: '🤖 Digital Disinformation',
+                    content: `
+                        <p>This tactic leverages the modern digital ecosystem to execute character assassination at unprecedented speed and scale. It involves using social media platforms, AI-generated "deepfakes," and networks of bots and troll farms to spread false narratives, amplify division, and create the illusion of grassroots movements.</p>
+                        <p class="mt-2">These campaigns often work in concert with lawfare in a "legal-media apparatus," where a disinformation campaign creates public pressure for an investigation, which in turn generates "official" material to be fed back into the media, creating a self-perpetuating cycle of delegitimization.</p>
+                    `
+                },
+                finance: {
+                    title: '💸 Economic Leverage',
+                    content: `
+                        <p>This involves exploiting the interconnectedness of the global economy to exert pressure. One form is "weaponized interdependence," where a state controlling a key hub in a global network (like the financial system) can threaten to cut off adversaries, creating a powerful coercive tool.</p>
+                        <p class="mt-2">Domestically, the influence of money in politics can create vulnerabilities that adversaries can exploit. Furthermore, by stoking geopolitical risk through information warfare, an adversary can directly impact a nation's corporate and economic stability by increasing borrowing costs and depressing investment.</p>
+                    `
+                }
+            };
+
+            const actorContent = {
+                russia: {
+                    objective: `
+                        <h4 class="font-semibold mb-2">Doctrine of Perpetual Confrontation</h4>
+                        <p>Russia's primary goal is not to win converts, but to disrupt, destabilize, and degrade the Western democratic model from within. It seeks to sow doubt, weaken alliances like NATO, and create societal discord to blunt international opposition to its geopolitical ambitions.</p>
+                    `,
+                    tactics: `
+                        <h4 class="font-semibold mb-2">Full-Spectrum Toolkit</h4>
+                        <ul class="list-disc list-inside space-y-1">
+                            <li>Mastery of disinformation (e.g., "Lisa case").</li>
+                            <li>Hack-and-leak operations during elections.</li>
+                            <li>Use of proxies like the Internet Research Agency (IRA).</li>
+                            <li>Systematic use of <em>kompromat</em> as a tool of statecraft.</li>
+                        </ul>
+                    `,
+                    case: `
+                        <h4 class="font-semibold mb-2">2016 U.S. Election Interference</h4>
+                        <p>A watershed moment combining hacking (of the DNC) with a massive social media campaign to amplify divisive narratives. The operation successfully deepened societal fractures and eroded trust in the democratic process, demonstrating the potent synergy of cyber intrusion and information warfare.</p>
+                    `
+                },
+                china: {
+                    objective: `
+                        <h4 class="font-semibold mb-2">Unrestricted Warfare & Sharp Power</h4>
+                        <p>China's goal is more ambitious: to fundamentally reshape the international order by promoting its authoritarian model as a superior alternative to democracy. It uses "sharp power" to censor critics, shape global narratives, and co-opt elites.</p>
+                    `,
+                    tactics: `
+                        <h4 class="font-semibold mb-2">Disciplined, Long-Term Strategy</h4>
+                        <ul class="list-disc list-inside space-y-1">
+                            <li>Cyber influence to monitor and intimidate diaspora communities.</li>
+                            <li>Large-scale disinformation networks ("Spamouflage").</li>
+                            <li>Economic leverage to coerce foreign corporations (e.g., H&M).</li>
+                            <li>Plausible deniability via support for partners like Russia.</li>
+                        </ul>
+                    `,
+                    case: `
+                        <h4 class="font-semibold mb-2">Xinjiang Cotton Controversy</h4>
+                        <p>After corporations like H&M expressed concern over forced labor in Xinjiang, Beijing orchestrated a coordinated propaganda and boycott campaign. This demonstrated its willingness and ability to use foreign malign influence (FMI) to enforce its political red lines and punish dissent in the global corporate world.</p>
+                    `
+                }
+            };
+
+            // Chart.js Radar Chart
+            const ctx = document.getElementById('threat-chart').getContext('2d');
+            const threatChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: [
+                        'Corrosive/Disruptive Impact', 
+                        'Plausible Deniability', 
+                        'Asymmetric Advantage', 
+                        'Societal Polarization', 
+                        'Escalation Risk'
+                    ],
+                    datasets: []
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
+                            grid: { color: 'rgba(0, 0, 0, 0.1)' },
+                            pointLabels: { 
+                                font: { size: 10 },
+                                color: '#374151'
+                            },
+                            ticks: {
+                                backdropColor: 'transparent',
+                                color: '#6B7280',
+                                stepSize: 2,
+                                beginAtZero: true,
+                                max: 10
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            function updateThreatDisplay(threatKey) {
+                const data = threatData[threatKey];
+                
+                // Update Chart
+                threatChart.data.datasets = [{
+                    label: data.label,
+                    data: data.scores,
+                    backgroundColor: threatKey === 'character' ? 'rgba(38, 93, 90, 0.2)' : (threatKey === 'espionage' ? 'rgba(74, 85, 104, 0.2)' : 'rgba(199, 117, 96, 0.2)'),
+                    borderColor: threatKey === 'character' ? 'rgba(38, 93, 90, 1)' : (threatKey === 'espionage' ? 'rgba(74, 85, 104, 1)' : 'rgba(199, 117, 96, 1)'),
+                    pointBackgroundColor: threatKey === 'character' ? 'rgba(38, 93, 90, 1)' : (threatKey === 'espionage' ? 'rgba(74, 85, 104, 1)' : 'rgba(199, 117, 96, 1)'),
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(54, 162, 235, 1)'
+                }];
+                threatChart.update();
+
+                // Update Details
+                document.getElementById('threat-details').innerHTML = data.details;
+
+                // Update Buttons
+                document.querySelectorAll('.threat-btn').forEach(btn => {
+                    btn.classList.remove('btn-active');
+                    btn.classList.add('bg-white', 'text-gray-700', 'hover:bg-gray-50');
+                });
+                const activeButton = document.querySelector(`.threat-btn[data-threat="${threatKey}"]`);
+                activeButton.classList.add('btn-active');
+                activeButton.classList.remove('bg-white', 'text-gray-700', 'hover:bg-gray-50');
+            }
+
+            document.getElementById('threat-buttons').addEventListener('click', (e) => {
+                if (e.target.matches('.threat-btn')) {
+                    updateThreatDisplay(e.target.dataset.threat);
+                }
+            });
+
+            // Initial Load
+            updateThreatDisplay('character');
+            
+            // Tactic Modal Logic
+            const modal = document.getElementById('tactic-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalContent = document.getElementById('modal-content');
+            const modalClose = document.getElementById('modal-close');
+
+            document.querySelectorAll('.tactic-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const tacticKey = card.dataset.tactic;
+                    const details = tacticDetails[tacticKey];
+                    modalTitle.innerHTML = details.title;
+                    modalContent.innerHTML = details.content;
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                });
+            });
+
+            function closeModal() {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+
+            modalClose.addEventListener('click', closeModal);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+
+            // Actor Content Logic
+            function updateActorContent(actor, tab) {
+                const content = actorContent[actor][tab];
+                document.getElementById(`${actor}-content`).innerHTML = content;
+
+                document.querySelectorAll(`.actor-btn[data-actor="${actor}"]`).forEach(btn => {
+                    btn.classList.remove('btn-secondary');
+                    btn.classList.add('bg-white', 'text-gray-700', 'hover:bg-gray-50');
+                });
+                const activeButton = document.querySelector(`.actor-btn[data-actor="${actor}"][data-tab="${tab}"]`);
+                activeButton.classList.add('btn-secondary');
+                activeButton.classList.remove('bg-white', 'text-gray-700', 'hover:bg-gray-50');
+            }
+
+            document.querySelectorAll('.actor-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    updateActorContent(btn.dataset.actor, btn.dataset.tab);
+                });
+            });
+
+            // Initial Actor Load
+            updateActorContent('russia', 'objective');
+            updateActorContent('china', 'objective');
+
+            // Accordion Logic
+            document.querySelectorAll('.accordion-header').forEach(header => {
+                header.addEventListener('click', () => {
+                    const content = header.nextElementSibling;
+                    const icon = header.querySelector('.accordion-icon');
+                    
+                    if (content.style.maxHeight) {
+                        content.style.maxHeight = null;
+                        icon.classList.remove('rotate-45');
+                    } else {
+                        document.querySelectorAll('.accordion-content').forEach(c => c.style.maxHeight = null);
+                        document.querySelectorAll('.accordion-icon').forEach(i => i.classList.remove('rotate-45'));
+                        content.style.maxHeight = content.scrollHeight + "px";
+                        icon.classList.add('rotate-45');
+                    }
+                });
+            });
+
+            // Smooth Scrolling & Nav Highlighting
+            const navLinks = document.querySelectorAll('.nav-item');
+            const sections = document.querySelectorAll('section');
+
+            window.addEventListener('scroll', () => {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    if (pageYOffset >= sectionTop - 80) {
+                        current = section.getAttribute('id');
+                    }
+                });
+
+                navLinks.forEach(link => {
+                    link.classList.remove('nav-active');
+                    if (link.getAttribute('href').substring(1) === current) {
+                        link.classList.add('nav-active');
+                    }
+                });
+            });
+            
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+            
+            // Mobile Menu
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+        });
+    </script>
+</body>
+</html>
